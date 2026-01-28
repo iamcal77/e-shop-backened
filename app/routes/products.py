@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, UploadFile, File
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from sqlalchemy.orm import Session
 from app.database import SessionLocal
 from app.models import Product, ProductVariant, Category, Inventory, Warehouse
@@ -49,6 +49,13 @@ def delete_product(product_id: int, db: Session = Depends(get_db)):
 def list_products(db: Session = Depends(get_db)):
     return db.query(Product).all()
 
+@router.get("/{product_id}", response_model=ProductOut)
+def get_product(product_id: int, db: Session = Depends(get_db)):
+    product = db.get(Product, product_id)
+    if not product:
+        raise HTTPException(status_code=404, detail="Product not found")
+    return product
+
 # ----------------- Product Variants -----------------
 @router.post("/{product_id}/variants", response_model=dict)
 def create_variant(product_id: int, data: ProductVariantCreate, db: Session = Depends(get_db)):
@@ -56,7 +63,28 @@ def create_variant(product_id: int, data: ProductVariantCreate, db: Session = De
     db.add(variant)
     db.commit()
     db.refresh(variant)
+
+    print("Variant created:", variant.id)
+
+    warehouses = db.query(Warehouse).all()
+    print("Warehouses found:", len(warehouses))
+
+    for wh in warehouses:
+        inv = Inventory(
+            product_variant_id=variant.id,
+            warehouse_id=wh.id,
+            quantity=0,
+            reorder_level=0
+        )
+        db.add(inv)
+        print(f"Inventory staged for variant {variant.id} in warehouse {wh.id}")
+
+    db.commit()
+    print("Inventory committed")
+
     return {"id": variant.id}
+
+
 
 # ----------------- Categories -----------------
 @router.post("/categories")

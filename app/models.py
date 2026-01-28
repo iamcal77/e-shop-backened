@@ -61,27 +61,27 @@ class Product(Base):
     description = Column(Text)
     product_type = Column(String)  # physical | digital | service
     is_active = Column(Boolean, default=True)
+    url = Column(String, unique=True)
     created_at = Column(DateTime, server_default=func.now())
 
     variants = relationship("ProductVariant", back_populates="product")
-    cart_items = relationship("CartItem", back_populates="product")
 
 class ProductVariant(Base):
     __tablename__ = "product_variants"
 
     id = Column(Integer, primary_key=True)
     product_id = Column(Integer, ForeignKey("products.id"))
-
     sku = Column(String, unique=True)
     price = Column(Float)
-
     size = Column(String, nullable=True)
     color = Column(String, nullable=True)
-
-    weight_kg = Column(Float, default=0)
     is_active = Column(Boolean, default=True)
 
     product = relationship("Product", back_populates="variants")
+    inventory = relationship("Inventory", back_populates="product_variant")
+    order_items = relationship("OrderItem", back_populates="product_variant")
+    cart_items = relationship("CartItem", back_populates="product_variant")
+
 
 class ShippingRate(Base):
     __tablename__ = "shipping_rates"
@@ -149,24 +149,13 @@ class CartItem(Base):
     __tablename__ = "cart_items"
 
     id = Column(Integer, primary_key=True)
-
-    cart_id = Column(
-        Integer,
-        ForeignKey("carts.id", ondelete="CASCADE"),
-        nullable=False
-    )
-
-    # IMPORTANT: variant, not product
-    product_variant_id = Column(
-        Integer,
-        ForeignKey("product_variants.id"),
-        nullable=False
-    )
-
+    cart_id = Column(Integer, ForeignKey("carts.id", ondelete="CASCADE"), nullable=False)
+    product_variant_id = Column(Integer, ForeignKey("product_variants.id"), nullable=False)
     quantity = Column(Integer, nullable=False, default=1)
 
     cart = relationship("Cart", back_populates="items")
-    product_variant = relationship("ProductVariant")
+    product_variant = relationship("ProductVariant", back_populates="cart_items")
+
 
 # -------------------------
 # Orders & Order Items
@@ -236,7 +225,7 @@ class Payment(Base):
     amount = Column(Float)
     created_at = Column(DateTime, server_default=func.now())
 
-    order = relationship("Order", back_populates="payments")
+    order = relationship("Order", back_populates="payment")
 
 # -------------------------
 # Shipments
@@ -251,7 +240,7 @@ class Shipment(Base):
     tracking_number = Column(String)
     status = Column(String)
 
-    order = relationship("Order", back_populates="shipments")
+    order = relationship("Order", back_populates="shipment")
     warehouse = relationship("Warehouse", back_populates="shipments")
 
 

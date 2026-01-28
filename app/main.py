@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.routes import auth, inventory, pos, products, orders, cart,pricing,customer
+from app.routes import auth, inventory, products, orders, cart,pricing,customer,warehouses
 from .database import engine, Base
 
 Base.metadata.create_all(bind=engine)
@@ -26,6 +26,6 @@ app.include_router(products.router)
 app.include_router(cart.router)
 app.include_router(orders.router)
 app.include_router(inventory.router)
-app.include_router(pos.router)
 app.include_router(pricing.router)
 app.include_router(customer.router)
+app.include_router(warehouses.router)
