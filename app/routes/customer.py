@@ -1,5 +1,5 @@
 from datetime import datetime
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException,status
 from sqlalchemy.orm import Session
 from app.database import SessionLocal
 from app.models import User, Address, Order
@@ -149,8 +149,19 @@ def gdpr_self_delete(
     user=Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    db_user = db.query(User).get(user["sub"])
+    # 🚫 Admins cannot self-delete
+    if user["role"] == "ADMIN":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin accounts cannot be deleted"
+        )
 
+    db_user = db.query(User).get(int(user["sub"]))
+
+    if not db_user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    # GDPR anonymization
     db_user.email = None
     db_user.phone = None
     db_user.password = None
@@ -158,5 +169,6 @@ def gdpr_self_delete(
     db_user.deleted_at = datetime.utcnow()
 
     db.commit()
+
     return {"message": "Account anonymized per GDPR"}
 
