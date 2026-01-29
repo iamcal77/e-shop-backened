@@ -20,12 +20,8 @@ class AddressOut(AddressCreate):
 # -------------------------
 # User / Customer Schemas
 # -------------------------
-class UserCreate(BaseModel):
-    email: Optional[EmailStr] = None
-    phone: Optional[str] = None
-    password: Optional[str] = None
-    sso_provider: Optional[str] = None  # e.g., Google, Facebook
-    sso_id: Optional[str] = None
+class SegmentUpdate(BaseModel):
+      segment: str
 
 class UserOut(BaseModel):
     id: int
@@ -36,7 +32,11 @@ class UserOut(BaseModel):
     loyalty_points: int
     created_at: datetime
     customer_segment: Optional[str] = None
+    full_name: Optional[str] = None
+    phone: Optional[str] = None
     addresses: List[AddressOut] = []
 
     class Config:
         orm_mode = True
+
+

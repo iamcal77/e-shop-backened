@@ -15,7 +15,7 @@ def get_db():
     finally:
         db.close()
 
-@router.post("/adjust", response_model=InventoryOut)
+@router.post("/adjust", response_model=InventoryOut,dependencies=[Depends(admin_only)])
 def adjust_inventory(data: InventoryAdjust, db: Session = Depends(get_db)):
     inv = db.query(Inventory).filter_by(
         product_variant_id=data.product_variant_id,
@@ -50,7 +50,7 @@ def adjust_inventory(data: InventoryAdjust, db: Session = Depends(get_db)):
 
 
 # ----------------- List Inventory -----------------
-@router.get("/", response_model=List[InventoryOut])
+@router.get("/", response_model=List[InventoryOut],dependencies=[Depends(admin_only)])
 def inventory_list(db: Session = Depends(get_db)):
     """
     Fetch all inventory rows where:

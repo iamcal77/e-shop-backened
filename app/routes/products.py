@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from sqlalchemy.orm import Session
 from app.database import SessionLocal
 from app.models import Product, ProductVariant, Category, Inventory, Warehouse
-from app.deps import admin_only
+from app.deps import admin_only,get_current_user
 from app.schemas.product import ProductCreate, ProductOut, ProductVariantCreate
 import csv, io
 
@@ -17,7 +17,7 @@ def get_db():
         db.close()
 
 # ----------------- Products -----------------
-@router.post("/", response_model=ProductOut)
+@router.post("/", response_model=ProductOut,dependencies=[Depends(admin_only)])
 def create_product(data: ProductCreate, db: Session = Depends(get_db)):
     product = Product(**data.dict())
     db.add(product)
@@ -25,7 +25,7 @@ def create_product(data: ProductCreate, db: Session = Depends(get_db)):
     db.refresh(product)
     return product
 
-@router.put("/{product_id}", response_model=ProductOut)
+@router.put("/{product_id}", response_model=ProductOut,dependencies=[Depends(admin_only)])
 def update_product(product_id: int, data: ProductCreate, db: Session = Depends(get_db)):
     product = db.get(Product, product_id)
     if not product:
@@ -36,7 +36,7 @@ def update_product(product_id: int, data: ProductCreate, db: Session = Depends(g
     db.refresh(product)
     return product
 
-@router.delete("/{product_id}")
+@router.delete("/{product_id}",dependencies=[Depends(admin_only)])
 def delete_product(product_id: int, db: Session = Depends(get_db)):
     product = db.get(Product, product_id)
     if not product:
@@ -45,11 +45,11 @@ def delete_product(product_id: int, db: Session = Depends(get_db)):
     db.commit()
     return {"message": "Product deleted"}
 
-@router.get("/", response_model=list[ProductOut])
+@router.get("/", response_model=list[ProductOut],dependencies=[Depends(get_current_user)])
 def list_products(db: Session = Depends(get_db)):
     return db.query(Product).all()
 
-@router.get("/{product_id}", response_model=ProductOut)
+@router.get("/{product_id}", response_model=ProductOut,dependencies=[Depends(get_current_user)])
 def get_product(product_id: int, db: Session = Depends(get_db)):
     product = db.get(Product, product_id)
     if not product:
@@ -57,7 +57,7 @@ def get_product(product_id: int, db: Session = Depends(get_db)):
     return product
 
 # ----------------- Product Variants -----------------
-@router.post("/{product_id}/variants", response_model=dict)
+@router.post("/{product_id}/variants", response_model=dict,dependencies=[Depends(admin_only)])
 def create_variant(product_id: int, data: ProductVariantCreate, db: Session = Depends(get_db)):
     variant = ProductVariant(product_id=product_id, **data.dict())
     db.add(variant)

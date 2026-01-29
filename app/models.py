@@ -9,8 +9,10 @@ class User(Base):
     __tablename__ = "users"
 
     id = Column(Integer, primary_key=True)
+    full_name = Column(String, nullable=True)
     email = Column(String, unique=True, index=True)
     password = Column(String)
+    phone = Column(String, nullable=True)
     sso_provider = Column(String, nullable=True)
     sso_id = Column(String, nullable=True)
     role = Column(String, default="USER")  # ADMIN, CASHIER, CUSTOMER

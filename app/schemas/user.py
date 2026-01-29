@@ -2,6 +2,8 @@ from pydantic import BaseModel, Field
 
 class UserCreate(BaseModel):
     email: str
+    phone: str | None = None
+    full_name: str | None = None
     password: str = Field(..., min_length=8, max_length=72)
     role: str = "USER"
 
