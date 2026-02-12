@@ -35,7 +35,7 @@ def get_my_profile(
     user=Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    db_user = db.query(User).get(user["sub"])
+    db_user = db.query(User).get(user.id)
     return db_user
 
 # list customer by id
@@ -146,17 +146,16 @@ def create_guest(db: Session = Depends(get_db)):
 # GDPR / Delete Customer
 @router.delete("/me")
 def gdpr_self_delete(
-    user=Depends(get_current_user),
+    user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    # 🚫 Admins cannot self-delete
-    if user["role"] == "ADMIN":
+    if user.role == "ADMIN":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Admin accounts cannot be deleted"
         )
 
-    db_user = db.query(User).get(int(user["sub"]))
+    db_user = db.query(User).get(user.id)
 
     if not db_user:
         raise HTTPException(status_code=404, detail="User not found")
@@ -171,4 +170,5 @@ def gdpr_self_delete(
     db.commit()
 
     return {"message": "Account anonymized per GDPR"}
+
 

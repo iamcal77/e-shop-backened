@@ -186,7 +186,12 @@ class Order(Base):
         cascade="all, delete-orphan"
     )
     payment = relationship("Payment", back_populates="order", uselist=False)
-    shipment = relationship("Shipment", back_populates="order", uselist=False)
+    shipments = relationship(
+    "Shipment",
+    back_populates="order",
+    cascade="all, delete-orphan"
+)
+
 
 
 class OrderItem(Base):
@@ -197,6 +202,7 @@ class OrderItem(Base):
     product_variant_id = Column(Integer, ForeignKey("product_variants.id"))
     quantity = Column(Integer, nullable=False)
     price = Column(Float)
+    shipped_quantity = Column(Integer, default=0)
 
     order = relationship("Order", back_populates="items")
     product_variant = relationship("ProductVariant", back_populates="order_items")
@@ -212,6 +218,33 @@ class OrderAddress(Base):
     country = Column(String)
 
     order = relationship("Order", backref="shipping_address")
+
+class ReturnRequest(Base):
+    __tablename__ = "return_requests"
+
+    id = Column(Integer, primary_key=True)
+    order_id = Column(Integer, ForeignKey("orders.id"))
+    status = Column(String, default="REQUESTED")  # REQUESTED | APPROVED | REJECTED | COMPLETED
+    reason = Column(Text)
+    created_at = Column(DateTime, server_default=func.now())
+
+    order = relationship("Order")
+    items = relationship(
+        "ReturnItem",
+        back_populates="return_request",
+        cascade="all, delete-orphan"
+    )
+class ReturnItem(Base):
+    __tablename__ = "return_items"
+
+    id = Column(Integer, primary_key=True)
+    return_request_id = Column(Integer, ForeignKey("return_requests.id", ondelete="CASCADE"))
+    order_item_id = Column(Integer, ForeignKey("order_items.id"))
+    quantity = Column(Integer, nullable=False)
+
+    return_request = relationship("ReturnRequest", back_populates="items")
+    order_item = relationship("OrderItem")
+
 
 # -------------------------
 # Payments
@@ -240,10 +273,27 @@ class Shipment(Base):
     warehouse_id = Column(Integer, ForeignKey("warehouses.id"))
     carrier = Column(String)
     tracking_number = Column(String)
-    status = Column(String)
+    status = Column(String, default="CREATED")
 
-    order = relationship("Order", back_populates="shipment")
+    order = relationship("Order", back_populates="shipments")
     warehouse = relationship("Warehouse", back_populates="shipments")
+
+    items = relationship(
+        "ShipmentItem",
+        back_populates="shipment",
+        cascade="all, delete-orphan"
+    )
+
+class ShipmentItem(Base):
+    __tablename__ = "shipment_items"
+
+    id = Column(Integer, primary_key=True)
+    shipment_id = Column(Integer, ForeignKey("shipments.id", ondelete="CASCADE"))
+    order_item_id = Column(Integer, ForeignKey("order_items.id"))
+    quantity = Column(Integer, nullable=False)
+
+    shipment = relationship("Shipment", back_populates="items")
+    order_item = relationship("OrderItem")
 
 
 

@@ -3,7 +3,8 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from datetime import datetime
 
-from app.models import Cart, CartItem, Order, OrderItem, OrderAddress, Inventory, Payment
+from app.deps import get_current_user
+from app.models import Cart, CartItem, Order, OrderItem, OrderAddress, Inventory, Payment, User
 from app.routes.auth import get_db
 from app.schemas.cart import CartItemCreate, CartResponse, CheckoutRequest, OrderResponse
 
@@ -13,13 +14,15 @@ router = APIRouter(prefix="/cart", tags=["Cart & Checkout"])
 def add_to_cart(
     payload: CartItemCreate,
     cart_id: Optional[int] = None,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user)  # <-- Add user here
+
 ):
     # Fetch or create cart
     cart = db.query(Cart).filter(Cart.id == cart_id).first() if cart_id else None
     if not cart:
         cart = Cart(
-            user_id=None,
+            user_id=user.id,
             is_abandoned=False,
             last_activity_at=datetime.utcnow()
         )
@@ -74,7 +77,11 @@ def add_to_cart(
 
 
 @router.post("/checkout", response_model=OrderResponse)
-def checkout(payload: CheckoutRequest, db: Session = Depends(get_db)):
+def checkout(
+    payload: CheckoutRequest, 
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user) 
+    ):
     # 1️⃣ Fetch the cart
     cart = db.query(Cart).filter(Cart.id == payload.cart_id).first()
     if not cart or not cart.items:
@@ -82,7 +89,7 @@ def checkout(payload: CheckoutRequest, db: Session = Depends(get_db)):
 
     # 2️⃣ Create the order
     order = Order(
-        user_id=cart.user_id,
+        user_id=user.id,
         status="CREATED",
         currency=payload.currency
     )
